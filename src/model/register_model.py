@@ -3,8 +3,10 @@
 import json
 import mlflow
 import logging
+
 import dagshub
 
+#set tracking uri
 mlflow.set_tracking_uri('https://dagshub.com/MuktiKsinha/mlops-mini-project.mlflow')
 dagshub.init(repo_owner='MuktiKsinha', repo_name='mlops-mini-project', mlflow=True)
 
@@ -41,34 +43,25 @@ def load_model_info(file_path: str) -> dict:
         raise
 
 def register_model(model_name: str, model_info: dict):
-    """Log the model as an artifact (DagsHub compatible)."""
-def register_model(model_name: str, model_info: dict):
-    """Log the model as an artifact (DagsHub compatible) and register it."""
+    """Register the model to the MLflow Model Registry."""
     try:
-        # Load the trained model file path from model_info
-        model_path = model_info['model_path']
-        # Log the model file as an artifact
-        mlflow.log_artifact(model_path)
-        logger.debug(f'Model {model_name} logged as artifact.')
-
+        model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
+        
         # Register the model
-        model_uri = f"runs:/{model_info['run_id']}/{model_info['artifact_path']}"
+        model_version = mlflow.register_model(model_uri, model_name)
+        
+        # Transition the model to "Staging" stage
         client = mlflow.tracking.MlflowClient()
-        model_version = client.create_model_version(
-            name=model_name,
-            source=model_path,
-            run_id=model_info['run_id']
-        )
         client.transition_model_version_stage(
             name=model_name,
             version=model_version.version,
             stage="Staging"
         )
+        
         logger.debug(f'Model {model_name} version {model_version.version} registered and transitioned to Staging.')
     except Exception as e:
         logger.error('Error during model registration: %s', e)
         raise
-  
 
 def main():
     try:

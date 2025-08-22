@@ -1,4 +1,4 @@
-# updated model evaluation
+# model evaluation
 
 import numpy as np
 import pandas as pd
@@ -9,8 +9,8 @@ import logging
 import mlflow
 import mlflow.sklearn
 import dagshub
-import os
 
+#set tracking uri
 mlflow.set_tracking_uri('https://dagshub.com/MuktiKsinha/mlops-mini-project.mlflow')
 dagshub.init(repo_owner='MuktiKsinha', repo_name='mlops-mini-project', mlflow=True)
 
@@ -99,12 +99,13 @@ def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
             json.dump(model_info, file, indent=4)
         logger.debug('Model info saved to %s', file_path)
     except Exception as e:
-        logger.error('Error occurred while saving the model info: %s', e)
-        raise
+        logger.error('Failed to complete the model evaluation process: %s', e)
+        print(f"Error: {e}")
+
 
 def main():
     mlflow.set_experiment("dvc-pipeline")
-    with mlflow.start_run() as run:  # Start an MLflow run
+    with mlflow.start_run() as run: # Start an MLflow run
         try:
             clf = load_model('./models/model.pkl')
             test_data = load_data('./data/processed/test_bow.csv')
@@ -127,24 +128,21 @@ def main():
                     mlflow.log_param(param_name, param_value)
             
             # Log model to MLflow
-            import joblib
-            joblib.dump(clf, "model.pkl")
-            mlflow.log_artifact("model.pkl")
-            
-            # Save model info
-            save_model_info(run.info.run_id, "model.pkl", 'reports/experiment_info.json')
+            mlflow.sklearn.log_model(clf, "model")
+
+            #save model info
+            save_model_info(run.info.run_id,"model",'reports/experiment_info.json')
             
             # Log the metrics file to MLflow
             mlflow.log_artifact('reports/metrics.json')
-
-            # Log the model info file to MLflow
-            mlflow.log_artifact('reports/experiment_info.json')
 
             # Log the evaluation errors log file to MLflow
             mlflow.log_artifact('model_evaluation_errors.log')
         except Exception as e:
             logger.error('Failed to complete the model evaluation process: %s', e)
             print(f"Error: {e}")
+        finally:
+            mlflow.end_run()  # End the MLflow run
 
 if __name__ == '__main__':
     main()
