@@ -23,6 +23,11 @@ jobs:
         run: |
           pip install dvc
 
+      - name: Export DagsHub credentials
+        run: |
+          echo "DAGSHUB_USERNAME=${{ secrets.DAGSHUB_USERNAME }}" >> $GITHUB_ENV
+          echo "DAGSHUB_PAT=${{ secrets.DAGSHUB_PAT }}" >> $GITHUB_ENV
+
       - name: Run DVC pipeline
         env:
           DAGSHUB_PAT: $ {{ secrets.DAGSHUB_PAT }}
